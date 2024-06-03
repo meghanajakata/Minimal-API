@@ -11,7 +11,7 @@ namespace LibraryManagementSystemApplication.Models
         public int BookId { get; set; }
         public string Title { get; set; }
         public DateTime publicationDate { get; set; }
-        public int ISBN { get; set; }
+        public string ISBN { get; set; }
 
         [ForeignKey("Author")]
         public int AuthorID { get; set; }

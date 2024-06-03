@@ -28,11 +28,12 @@ namespace LibraryManagementSystemApplication
             {
                 try
                 {
-                    await db.Books.ToListAsync();
+                    var books = await db.Books.ToListAsync();
+                    return Results.Ok(books);
                 }
                 catch (Exception ex)
                 {
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
             });
 
@@ -40,31 +41,35 @@ namespace LibraryManagementSystemApplication
             {
                 try
                 {
-                    if (await db.Books.FindAsync(id) is Book book)
-                        Results.Ok(book);
-                    else
-                        Results.NotFound();
+                    var book = await db.Books.FindAsync(id);
+                    if (book is not null)
+                        return Results.Ok(book);
+                    return Results.NotFound();
                 }
                 catch (Exception ex)
                 {
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
-
             });
 
             app.MapPost("/books", async (Book book, Context db) =>
             {
                 try
                 {
-                    db.Books.Add(book);
-                    await db.SaveChangesAsync();
-                    return Results.Created($"/books/{book.BookId}", book);
+                    var _book = await db.Books.AnyAsync(b => b.ISBN == book.ISBN);
+                    if (!_book)
+                    {
+                        db.Books.Add(book);
+                        await db.SaveChangesAsync();
+                        return Results.Created($"/books/{book.BookId}", book);
+                    }
+                    return Results.Conflict("The ISBN already exists");
 
                 }
                 catch (Exception ex)
                 {
 
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
 
             });
@@ -82,9 +87,9 @@ namespace LibraryManagementSystemApplication
 
                     await db.SaveChangesAsync();
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
 
                 return Results.NoContent();
@@ -92,7 +97,7 @@ namespace LibraryManagementSystemApplication
 
             app.MapDelete("/books/{id}", async (int id, Context db) =>
             {
-                if(await db.Books.FindAsync(id) is Book book )
+                if (await db.Books.FindAsync(id) is Book book)
                 {
                     db.Books.Remove(book);
                     await db.SaveChangesAsync();
@@ -107,11 +112,11 @@ namespace LibraryManagementSystemApplication
                 try
                 {
                     var authors = await db.Authors.ToListAsync();
-                    return authors;
+                    return Results.Ok(authors);
                 }
                 catch (Exception ex)
                 {
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
             });
 
@@ -120,13 +125,13 @@ namespace LibraryManagementSystemApplication
                 try
                 {
                     if (await db.Authors.FindAsync(id) is Author author)
-                        Results.Ok(author);
+                        return Results.Ok(author);
                     else
-                        Results.NotFound();
+                        return Results.NotFound();
                 }
                 catch (Exception ex)
                 {
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
 
             });
@@ -142,8 +147,7 @@ namespace LibraryManagementSystemApplication
                 }
                 catch (Exception ex)
                 {
-
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
 
             });
@@ -162,7 +166,7 @@ namespace LibraryManagementSystemApplication
                 }
                 catch (Exception ex)
                 {
-                    throw ex;
+                    return Results.Problem(ex.Message);
                 }
 
                 return Results.NoContent();
@@ -170,14 +174,21 @@ namespace LibraryManagementSystemApplication
 
             app.MapDelete("/authors/{id}", async (int id, Context db) =>
             {
-                if (await db.Authors.FindAsync(id) is Author author)
+                try
                 {
-                    db.Authors.Remove(author);
-                    await db.SaveChangesAsync();
-                    return Results.NoContent();
-                }
+                    if (await db.Authors.FindAsync(id) is Author author)
+                    {
+                        db.Authors.Remove(author);
+                        await db.SaveChangesAsync();
+                        return Results.NoContent();
+                    }
 
-                return Results.NotFound();
+                    return Results.NotFound();
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(ex.Message);
+                }
             });
 
             app.Run();
